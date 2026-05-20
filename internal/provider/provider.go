@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/aroma-zone/terraform-provider-klaviyo/internal/client"
+	resourcecoupon "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_coupon"
 	resourcedatasource "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_data_source"
 	resourcelist "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_list"
 
@@ -107,6 +108,7 @@ func (p *klaviyoProvider) Resources(_ context.Context) []func() resource.Resourc
 	return []func() resource.Resource{
 		resourcelist.New,
 		resourcedatasource.New,
+		resourcecoupon.New,
 	}
 }
 
