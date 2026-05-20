@@ -9,6 +9,7 @@ import (
 
 	"github.com/aroma-zone/terraform-provider-klaviyo/internal/client"
 	resourcecoupon "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_coupon"
+	resourcecustomobject "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_custom_object"
 	resourcedatasource "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_data_source"
 	resourcelist "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_list"
 
@@ -21,9 +22,11 @@ import (
 )
 
 // defaultAPIRevision is the Klaviyo API revision this provider was built
-// against. It matches spec/version.txt; bump both together when
-// regenerating from a newer upstream spec.
-const defaultAPIRevision = "2026-04-15"
+// against. The `.pre` suffix unlocks beta endpoints (currently used by
+// klaviyo_custom_object) without breaking the stable endpoints used by
+// the other resources. It matches spec/version.txt; bump both together
+// when regenerating from a newer upstream spec.
+const defaultAPIRevision = "2026-04-15.pre"
 
 // klaviyoProvider implements provider.Provider.
 type klaviyoProvider struct {
@@ -109,6 +112,7 @@ func (p *klaviyoProvider) Resources(_ context.Context) []func() resource.Resourc
 		resourcelist.New,
 		resourcedatasource.New,
 		resourcecoupon.New,
+		resourcecustomobject.New,
 	}
 }
 

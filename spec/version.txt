@@ -1,4 +1,13 @@
-revision: 2026-04-15
-commit:   796408bfb8bb1ea6f27d730ae548e492bfc0c5b0
-source:   https://raw.githubusercontent.com/klaviyo/openapi/{commit}/openapi/stable.json
-fetched:  2026-05-20
+revision:      2026-04-15.pre
+stable_commit: 796408bfb8bb1ea6f27d730ae548e492bfc0c5b0
+beta_commit:   d47af7b4f83766d701a9091118ae14c278c1efb7
+
+stable_source: https://raw.githubusercontent.com/klaviyo/openapi/{stable_commit}/openapi/stable.json
+beta_source:   https://raw.githubusercontent.com/klaviyo/openapi/{beta_commit}/openapi/beta.json
+fetched:       2026-05-20
+
+# The provider sends `revision: 2026-04-15.pre` so it can call both
+# the stable endpoints (e.g. /api/lists, /api/coupons) and the beta
+# endpoints (e.g. /api/object-schemas) under a single configuration.
+# spec/openapi.json holds the stable spec; spec/openapi-beta.json
+# holds the beta spec; both are committed for traceability.
