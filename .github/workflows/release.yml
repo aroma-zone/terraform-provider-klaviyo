@@ -1,0 +1,42 @@
+name: Release
+
+# Runs on the MIRROR repo (aroma-zone/terraform-provider-klaviyo). This
+# file ships there via the monorepo's subtree-split release workflow.
+#
+# Trigger: a tag matching v<semver> appearing on the mirror (pushed by
+# the monorepo's mirror job). Builds cross-platform binaries with
+# GoReleaser, signs SHA256SUMS with GPG, and publishes a GitHub release.
+# The Terraform Registry picks up the release from the mirror.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Import GPG key
+        id: gpg
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase:      ${{ secrets.PASSPHRASE }}
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN:     ${{ secrets.GITHUB_TOKEN }}
+          GPG_FINGERPRINT:  ${{ steps.gpg.outputs.fingerprint }}
