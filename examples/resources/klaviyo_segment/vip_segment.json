@@ -1,0 +1,14 @@
+{
+  "condition_groups": [
+    {
+      "conditions": [
+        {
+          "type": "profile_property",
+          "property": "$total_spent",
+          "operator": "greater_than",
+          "value": 500
+        }
+      ]
+    }
+  ]
+}
