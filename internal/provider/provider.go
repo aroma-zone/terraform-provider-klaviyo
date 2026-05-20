@@ -9,6 +9,13 @@ import (
 
 	"github.com/aroma-zone/terraform-provider-klaviyo/internal/client"
 	datasourceaccount "github.com/aroma-zone/terraform-provider-klaviyo/internal/datasource_account"
+	datasourcecoupon "github.com/aroma-zone/terraform-provider-klaviyo/internal/datasource_coupon"
+	datasourcecustomobject "github.com/aroma-zone/terraform-provider-klaviyo/internal/datasource_custom_object"
+	datasourcedatasource "github.com/aroma-zone/terraform-provider-klaviyo/internal/datasource_data_source"
+	datasourceflow "github.com/aroma-zone/terraform-provider-klaviyo/internal/datasource_flow"
+	datasourcelist "github.com/aroma-zone/terraform-provider-klaviyo/internal/datasource_list"
+	datasourceprofile "github.com/aroma-zone/terraform-provider-klaviyo/internal/datasource_profile"
+	datasourcesegment "github.com/aroma-zone/terraform-provider-klaviyo/internal/datasource_segment"
 	resourcecoupon "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_coupon"
 	resourcecustomobject "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_custom_object"
 	resourcedatasource "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_data_source"
@@ -126,6 +133,13 @@ func (p *klaviyoProvider) Resources(_ context.Context) []func() resource.Resourc
 func (p *klaviyoProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		datasourceaccount.New,
+		datasourcelist.New,
+		datasourcedatasource.New,
+		datasourcecoupon.New,
+		datasourcecustomobject.New,
+		datasourceflow.New,
+		datasourcesegment.New,
+		datasourceprofile.New,
 	}
 }
 
