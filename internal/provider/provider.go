@@ -5,13 +5,22 @@ package provider
 
 import (
 	"context"
+	"os"
+
+	"github.com/aroma-zone/terraform-provider-klaviyo/internal/client"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
+
+// defaultAPIRevision is the Klaviyo API revision this provider was built
+// against. It matches spec/version.txt; bump both together when
+// regenerating from a newer upstream spec.
+const defaultAPIRevision = "2026-04-15"
 
 // klaviyoProvider implements provider.Provider.
 type klaviyoProvider struct {
@@ -59,8 +68,37 @@ func (p *klaviyoProvider) Schema(_ context.Context, _ provider.SchemaRequest, re
 	}
 }
 
-func (p *klaviyoProvider) Configure(_ context.Context, _ provider.ConfigureRequest, _ *provider.ConfigureResponse) {
-	// Wired up in the next checkpoint, alongside the HTTP client.
+// Configure resolves the provider's config into a *client.Client and
+// hands it to every resource and data source via ResourceData /
+// DataSourceData. Errors here are surfaced to the user via diagnostics.
+func (p *klaviyoProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	var cfg klaviyoProviderModel
+	if diags := req.Config.Get(ctx, &cfg); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	apiKey := firstNonEmpty(cfg.APIKey.ValueString(), os.Getenv("KLAVIYO_API_KEY"))
+	revision := firstNonEmpty(cfg.APIRevision.ValueString(), os.Getenv("KLAVIYO_API_REVISION"), defaultAPIRevision)
+	baseURL := firstNonEmpty(cfg.BaseURL.ValueString(), client.DefaultBaseURL)
+
+	if apiKey == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("api_key"),
+			"Missing Klaviyo API key",
+			"Set the `api_key` attribute on the provider block or the `KLAVIYO_API_KEY` environment variable.",
+		)
+		return
+	}
+
+	c := client.New(apiKey, revision,
+		client.WithBaseURL(baseURL),
+		client.WithUserAgent("terraform-provider-klaviyo/"+p.version),
+	)
+
+	// Every resource's Configure receives this same client.
+	resp.ResourceData = c
+	resp.DataSourceData = c
 }
 
 func (p *klaviyoProvider) Resources(_ context.Context) []func() resource.Resource {
@@ -69,4 +107,15 @@ func (p *klaviyoProvider) Resources(_ context.Context) []func() resource.Resourc
 
 func (p *klaviyoProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return nil
+}
+
+// firstNonEmpty returns the first argument that isn't the empty string,
+// or "" if every argument is empty.
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
