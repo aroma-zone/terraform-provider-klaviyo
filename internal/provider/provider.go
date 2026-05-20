@@ -13,6 +13,7 @@ import (
 	resourcedatasource "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_data_source"
 	resourceflow "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_flow"
 	resourcelist "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_list"
+	resourceprofile "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_profile"
 	resourcesegment "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_segment"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -117,6 +118,7 @@ func (p *klaviyoProvider) Resources(_ context.Context) []func() resource.Resourc
 		resourcecustomobject.New,
 		resourceflow.New,
 		resourcesegment.New,
+		resourceprofile.New,
 	}
 }
 
