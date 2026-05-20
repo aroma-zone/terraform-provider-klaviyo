@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    {
+      "type": "Added to List",
+      "list_id": "REPLACE_ME"
+    }
+  ],
+  "actions": []
+}
