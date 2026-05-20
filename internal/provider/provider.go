@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/aroma-zone/terraform-provider-klaviyo/internal/client"
+	resourcedatasource "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_data_source"
 	resourcelist "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_list"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -105,6 +106,7 @@ func (p *klaviyoProvider) Configure(ctx context.Context, req provider.ConfigureR
 func (p *klaviyoProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		resourcelist.New,
+		resourcedatasource.New,
 	}
 }
 
