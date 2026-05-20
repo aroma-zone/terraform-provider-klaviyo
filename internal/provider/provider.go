@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/aroma-zone/terraform-provider-klaviyo/internal/client"
+	datasourceaccount "github.com/aroma-zone/terraform-provider-klaviyo/internal/datasource_account"
 	resourcecoupon "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_coupon"
 	resourcecustomobject "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_custom_object"
 	resourcedatasource "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_data_source"
@@ -123,7 +124,9 @@ func (p *klaviyoProvider) Resources(_ context.Context) []func() resource.Resourc
 }
 
 func (p *klaviyoProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return nil
+	return []func() datasource.DataSource{
+		datasourceaccount.New,
+	}
 }
 
 // firstNonEmpty returns the first argument that isn't the empty string,
