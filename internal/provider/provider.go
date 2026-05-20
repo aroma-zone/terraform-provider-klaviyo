@@ -16,6 +16,7 @@ import (
 	datasourcelist "github.com/aroma-zone/terraform-provider-klaviyo/internal/datasource_list"
 	datasourceprofile "github.com/aroma-zone/terraform-provider-klaviyo/internal/datasource_profile"
 	datasourcesegment "github.com/aroma-zone/terraform-provider-klaviyo/internal/datasource_segment"
+	datasourcewebhook "github.com/aroma-zone/terraform-provider-klaviyo/internal/datasource_webhook"
 	resourcecoupon "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_coupon"
 	resourcecustomobject "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_custom_object"
 	resourcedatasource "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_data_source"
@@ -23,6 +24,7 @@ import (
 	resourcelist "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_list"
 	resourceprofile "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_profile"
 	resourcesegment "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_segment"
+	resourcewebhook "github.com/aroma-zone/terraform-provider-klaviyo/internal/resource_webhook"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -127,6 +129,7 @@ func (p *klaviyoProvider) Resources(_ context.Context) []func() resource.Resourc
 		resourceflow.New,
 		resourcesegment.New,
 		resourceprofile.New,
+		resourcewebhook.New,
 	}
 }
 
@@ -140,6 +143,7 @@ func (p *klaviyoProvider) DataSources(_ context.Context) []func() datasource.Dat
 		datasourceflow.New,
 		datasourcesegment.New,
 		datasourceprofile.New,
+		datasourcewebhook.New,
 	}
 }
 
