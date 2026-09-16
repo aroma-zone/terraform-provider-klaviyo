@@ -187,9 +187,25 @@ func TestAccFlow_create(t *testing.T) {
 	})
 }
 
-// TestAccFlow_importState covers `terraform import`. `definition` is
-// ignored on verify because Klaviyo's read endpoint does not return it
-// — the provider documents that asymmetry and this pins it.
+// TestAccFlow_importState covers `terraform import`.
+//
+// Three attributes are excluded from the verify comparison, each
+// pinning a real Klaviyo API behaviour rather than papering over a
+// provider bug:
+//
+//   - definition: the read endpoint never returns it, which is why
+//     mergeIntoModel deliberately leaves the field alone.
+//   - created/updated: POST /api/flows/ returns sub-second precision
+//     ("2026-09-16T10:02:02.127735+00:00") while GET /api/flows/{id}
+//     truncates to the second ("2026-09-16T10:02:02+00:00"), so the
+//     value written by Create can never equal the one written by Read.
+//     Both are Computed-only, so the difference produces no plan diff
+//     (TestAccFlow_create's PlanOnly step proves that) and the provider
+//     stores what the API returned instead of inventing a normalised
+//     form the API never sent.
+//
+// id, name, status, archived and trigger_type are still compared, so
+// the import path is genuinely verified.
 func TestAccFlow_importState(t *testing.T) {
 	listName := acctest.UniqueName("flow-import-list")
 	flowName := acctest.UniqueName("flow-import")
@@ -205,7 +221,7 @@ func TestAccFlow_importState(t *testing.T) {
 				ResourceName:            flowResourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"definition"},
+				ImportStateVerifyIgnore: []string{"definition", "created", "updated"},
 			},
 		},
 	})
