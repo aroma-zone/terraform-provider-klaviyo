@@ -34,12 +34,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// defaultAPIRevision is the Klaviyo API revision this provider was built
+// DefaultAPIRevision is the Klaviyo API revision this provider was built
 // against. The `.pre` suffix unlocks beta endpoints (currently used by
 // klaviyo_custom_object) without breaking the stable endpoints used by
 // the other resources. It matches spec/version.txt; bump both together
 // when regenerating from a newer upstream spec.
-const defaultAPIRevision = "2026-04-15.pre"
+const DefaultAPIRevision = "2026-04-15.pre"
 
 // klaviyoProvider implements provider.Provider.
 type klaviyoProvider struct {
@@ -98,7 +98,7 @@ func (p *klaviyoProvider) Configure(ctx context.Context, req provider.ConfigureR
 	}
 
 	apiKey := firstNonEmpty(cfg.APIKey.ValueString(), os.Getenv("KLAVIYO_API_KEY"))
-	revision := firstNonEmpty(cfg.APIRevision.ValueString(), os.Getenv("KLAVIYO_API_REVISION"), defaultAPIRevision)
+	revision := firstNonEmpty(cfg.APIRevision.ValueString(), os.Getenv("KLAVIYO_API_REVISION"), DefaultAPIRevision)
 	baseURL := firstNonEmpty(cfg.BaseURL.ValueString(), client.DefaultBaseURL)
 
 	if apiKey == "" {

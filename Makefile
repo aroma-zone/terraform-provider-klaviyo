@@ -19,7 +19,7 @@ BETA_COMMIT   := $(shell awk -F': *' '/^beta_commit:/   {print $$2}' spec/versio
 STABLE_URL    := https://raw.githubusercontent.com/klaviyo/openapi/$(STABLE_COMMIT)/openapi/stable.json
 BETA_URL      := https://raw.githubusercontent.com/klaviyo/openapi/$(BETA_COMMIT)/openapi/beta.json
 
-.PHONY: help tools fetch-spec build test docs install clean
+.PHONY: help tools fetch-spec build test testacc docs install clean
 
 help:  ## Show available targets
 	@awk 'BEGIN{FS=":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  %-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -38,8 +38,17 @@ fetch-spec:  ## Re-download both upstream specs at their pinned commits
 build:  ## Compile the provider binary into ./bin/
 	go build -o bin/terraform-provider-$(PROVIDER_NAME) .
 
-test:  ## Run unit tests
+test:  ## Run unit tests (no credentials, no network)
 	go test ./...
+
+## Acceptance tests drive Terraform CLI against the REAL Klaviyo API and
+## create/destroy real objects. They need KLAVIYO_API_KEY and a terraform
+## binary on PATH. Objects are named `tfacc-*` so debris is greppable.
+## Narrow the run with TESTARGS, e.g.
+##   make testacc TESTARGS='-run TestAccFlow_create'
+testacc:  ## Run acceptance tests against the real Klaviyo API (needs KLAVIYO_API_KEY)
+	@[ -n "$$KLAVIYO_API_KEY" ] || { echo "KLAVIYO_API_KEY is not set"; exit 1; }
+	TF_ACC=1 go test ./... -v -timeout 30m $(TESTARGS)
 
 docs: tools  ## Generate Terraform Registry docs from the compiled provider
 	$(GOBIN)/tfplugindocs generate --provider-name $(PROVIDER_NAME)
