@@ -58,7 +58,7 @@ jobs:
     needs: goreleaser
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write   # gh release upload, for the lock file
       packages: write
     steps:
       - uses: oras-project/setup-oras@v1
@@ -149,6 +149,79 @@ jobs:
                exit 1 ;;
           esac
 
-          DEST="ghcr.io/${GITHUB_REPOSITORY_OWNER}/${REPO}:${VERSION}"
+          REPO_REF="ghcr.io/${GITHUB_REPOSITORY_OWNER}/${REPO}"
+          DEST="${REPO_REF}:${VERSION}"
+
+          # GHCR tags are mutable, and workflow_dispatch exists precisely
+          # to re-run against an existing tag — so republishing different
+          # bytes under a version consumers already locked is an easy
+          # accident. Refuse. Distinguish "no such tag yet" (fine, that is
+          # every first release) from "cannot reach the registry", which
+          # must not be swallowed into a silent publish.
+          if tags="$(oras repo tags "$REPO_REF" 2>tags.err)"; then
+            if printf '%s\n' "$tags" | grep -qxF "$VERSION"; then
+              echo "${DEST} already exists. Tags are mutable here and consumers pin by version:" >&2
+              echo "bump the version rather than republishing over it." >&2
+              exit 1
+            fi
+          elif grep -qiE 'not found|NAME_UNKNOWN|requested access|404' tags.err; then
+            echo "No tags on ${REPO_REF} yet — first publish."
+          else
+            echo "Could not list tags on ${REPO_REF}:" >&2
+            cat tags.err >&2
+            exit 1
+          fi
+
           oras cp --from-oci-layout "tmp-layout:${VERSION}" "$DEST"
           echo "Published $DEST"
+
+      # Emit the .terraform.lock.hcl hashes for the version just
+      # published, so adopting a release is a file consumers copy rather
+      # than one they have to derive by running tofu themselves.
+      #
+      # tofu providers lock ignores the oci_mirror block in .tofurc
+      # (opentofu/opentofu#3620); the -oci-mirror flag that fixes it
+      # landed in 1.13, and takes an RFC 6570 URI template — {type},
+      # not HCL's ${type}. Hence the pinned version below.
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.13.0
+
+      - name: Generate the consumer lock file
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+          TAG:     ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          REPO="${GITHUB_REPOSITORY##*/}"
+          TYPE="${REPO#terraform-provider-}"
+
+          mkdir -p lockgen && cd lockgen
+          cat >main.tf <<EOF
+          terraform {
+            required_providers {
+              ${TYPE//-/} = {   # local name = provider TypeName (talonone, not talon_one)
+                source  = "aroma-zone/${TYPE}"
+                version = "= ${VERSION}"
+              }
+            }
+          }
+          EOF
+
+          # Lock every platform this release actually published, so a
+          # consumer on any of them gets a hit rather than a re-resolve.
+          platform_args=()
+          for zip in ../dist/*_"${VERSION}"_*.zip; do
+            base="$(basename "$zip" .zip)"
+            platform_args+=("-platform=${base#*_${VERSION}_}")
+          done
+
+          tofu providers lock \
+            -oci-mirror="ghcr.io/${GITHUB_REPOSITORY_OWNER}/terraform-provider-{type}" \
+            "${platform_args[@]}"
+
+          cp .terraform.lock.hcl "../${REPO}_${VERSION}_lock.hcl"
+          cd ..
+          gh release upload "$TAG" "${REPO}_${VERSION}_lock.hcl" --repo "$GITHUB_REPOSITORY" --clobber
+          echo "Attached ${REPO}_${VERSION}_lock.hcl to release ${TAG}"
