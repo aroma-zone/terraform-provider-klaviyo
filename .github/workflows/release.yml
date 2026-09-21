@@ -12,6 +12,12 @@ on:
   push:
     tags:
       - 'v*'
+  # Escape hatch: the tag event is lost if it reaches the mirror
+  # before GitHub has registered this workflow (which is what
+  # happens on the very first release into an empty mirror).
+  # Re-run from the Actions tab against the tag instead of
+  # burning a version number.
+  workflow_dispatch:
 
 permissions:
   contents: write
