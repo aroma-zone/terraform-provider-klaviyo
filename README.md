@@ -84,9 +84,9 @@ Two caveats worth knowing:
 - `oci_mirror` is **OpenTofu only**. Terraform's `provider_installation`
   has no such block — a Terraform user needs a `network_mirror` or a
   `filesystem_mirror` instead.
-- The mirror carries the archives, not the GPG signature. Provenance
-  comes from the GitHub release's signed `SHA256SUMS`; the OCI layer
-  digests are what OpenTofu records in `.terraform.lock.hcl`.
+- The mirror carries the archives, not the GPG signature. The signed
+  `SHA256SUMS` on the GitHub release stays the provenance record — check
+  against it if you need to verify what the mirror served.
 
 ## How this provider is built
 

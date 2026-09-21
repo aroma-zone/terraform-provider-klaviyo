@@ -135,9 +135,20 @@ jobs:
             --oci-layout "tmp-layout:${VERSION}" \
             "${platforms[@]}"
 
-          # ${type} in the consumer's repository_template resolves to the
-          # provider type from the source address, which is this repo's
-          # name minus the terraform-provider- prefix.
-          DEST="ghcr.io/${GITHUB_REPOSITORY_OWNER}/${GITHUB_REPOSITORY##*/}:${VERSION}"
+          # The consumer's repository_template is
+          #   ghcr.io/aroma-zone/terraform-provider-${type}
+          # where ${type} is the provider type from the source address
+          # (klaviyo, talon-one). We push under this repo's own name, so
+          # the mirror repo MUST stay named terraform-provider-<type> —
+          # rename it and every consumer resolves to a path nothing was
+          # pushed to. Assert it rather than discovering it later.
+          REPO="${GITHUB_REPOSITORY##*/}"
+          case "$REPO" in
+            terraform-provider-?*) ;;
+            *) echo "Repo '$REPO' is not named terraform-provider-<type>; consumers resolve by type and would miss this push." >&2
+               exit 1 ;;
+          esac
+
+          DEST="ghcr.io/${GITHUB_REPOSITORY_OWNER}/${REPO}:${VERSION}"
           oras cp --from-oci-layout "tmp-layout:${VERSION}" "$DEST"
           echo "Published $DEST"
