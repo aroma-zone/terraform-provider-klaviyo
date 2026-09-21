@@ -43,6 +43,51 @@ resource "klaviyo_list" "newsletter" {
 }
 ```
 
+## Installing from the GHCR mirror (OpenTofu)
+
+The `aroma-zone` namespace is not published on the public registry, so
+OpenTofu installs this provider from an OCI mirror in GHCR. Every
+release pushes the same archives the GitHub release carries to
+`ghcr.io/aroma-zone/terraform-provider-klaviyo`, tagged with the bare
+version.
+
+Add this to `~/.tofurc` (or `$TF_CLI_CONFIG_FILE`):
+
+```hcl
+provider_installation {
+  oci_mirror {
+    repository_template = "ghcr.io/aroma-zone/terraform-provider-${type}"
+    include             = ["registry.opentofu.org/aroma-zone/*"]
+  }
+  direct {
+    exclude = ["registry.opentofu.org/aroma-zone/*"]
+  }
+}
+```
+
+The `source` in your configuration does not change —
+`aroma-zone/klaviyo` already resolves to
+`registry.opentofu.org/aroma-zone/klaviyo`, and the mirror intercepts
+it before any network call to the registry.
+
+GHCR packages are private, so authenticate once. OpenTofu reads the
+standard Docker credential store:
+
+```sh
+echo "$GITHUB_TOKEN" | docker login ghcr.io -u <your-github-user> --password-stdin
+```
+
+The token needs `read:packages` and membership in the `aroma-zone` org.
+
+Two caveats worth knowing:
+
+- `oci_mirror` is **OpenTofu only**. Terraform's `provider_installation`
+  has no such block — a Terraform user needs a `network_mirror` or a
+  `filesystem_mirror` instead.
+- The mirror carries the archives, not the GPG signature. Provenance
+  comes from the GitHub release's signed `SHA256SUMS`; the OCI layer
+  digests are what OpenTofu records in `.terraform.lock.hcl`.
+
 ## How this provider is built
 
 Hand-written against Klaviyo's official
