@@ -164,7 +164,7 @@ jobs:
               echo "bump the version rather than republishing over it." >&2
               exit 1
             fi
-          elif grep -qiE 'not found|NAME_UNKNOWN|requested access|404' tags.err; then
+          elif grep -qiE 'not found|name[_ ]unknown|not known to registry|requested access|404' tags.err; then
             echo "No tags on ${REPO_REF} yet — first publish."
           else
             echo "Could not list tags on ${REPO_REF}:" >&2
