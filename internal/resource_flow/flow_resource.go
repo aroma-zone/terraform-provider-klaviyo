@@ -177,20 +177,47 @@ func (r *flowResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	body := envelope{Data: resourceObject{
-		Type: apiType,
-		Attributes: attributes{
-			Name:       plan.Name.ValueString(),
-			Definition: json.RawMessage(plan.Definition.ValueString()),
-		},
-	}}
-	out, err := r.send(ctx, http.MethodPost, "/api/flows/", body, http.StatusCreated)
+	out, err := r.create(ctx, plan.Name.ValueString(), plan.Definition.ValueString(), plan.Status.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Creating Klaviyo flow failed", err.Error())
 		return
 	}
 	mergeIntoModel(&plan, out)
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+}
+
+// create POSTs the flow, then PATCHes its status when the plan asks for
+// anything but the state Klaviyo created it in. The Create API ignores
+// `status` and always returns `draft`, so without the follow-up PATCH a
+// `live` or `manual` flow fails the apply with an inconsistent result,
+// gets tainted, and is destroyed and recreated on every apply.
+func (r *flowResource) create(ctx context.Context, name, definition, status string) (resourceObject, error) {
+	body := envelope{Data: resourceObject{
+		Type: apiType,
+		Attributes: attributes{
+			Name:       name,
+			Definition: json.RawMessage(definition),
+		},
+	}}
+	out, err := r.send(ctx, http.MethodPost, "/api/flows/", body, http.StatusCreated)
+	if err != nil || status == "" || out.Attributes.Status == status {
+		return out, err
+	}
+	patched, err := r.setStatus(ctx, out.ID, status)
+	if err != nil {
+		return out, fmt.Errorf("flow %s created as %q, setting status %q failed: %w", out.ID, out.Attributes.Status, status, err)
+	}
+	return patched, nil
+}
+
+// setStatus PATCHes the only attribute Klaviyo lets us update.
+func (r *flowResource) setStatus(ctx context.Context, id, status string) (resourceObject, error) {
+	body := envelope{Data: resourceObject{
+		Type:       apiType,
+		ID:         id,
+		Attributes: attributes{Status: status},
+	}}
+	return r.send(ctx, http.MethodPatch, "/api/flows/"+id, body, http.StatusOK)
 }
 
 func (r *flowResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -222,12 +249,7 @@ func (r *flowResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	body := envelope{Data: resourceObject{
-		Type:       apiType,
-		ID:         plan.ID.ValueString(),
-		Attributes: attributes{Status: plan.Status.ValueString()},
-	}}
-	out, err := r.send(ctx, http.MethodPatch, "/api/flows/"+plan.ID.ValueString(), body, http.StatusOK)
+	out, err := r.setStatus(ctx, plan.ID.ValueString(), plan.Status.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Updating Klaviyo flow failed", err.Error())
 		return

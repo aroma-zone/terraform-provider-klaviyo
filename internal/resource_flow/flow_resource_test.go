@@ -163,3 +163,52 @@ func TestUpdatePayloadOnlySendsStatus(t *testing.T) {
 		t.Errorf("update payload missing status: %s", receivedBody)
 	}
 }
+
+func TestCreateSetsPlannedStatusAfterPost(t *testing.T) {
+	// Klaviyo creates every flow as draft. A planned `live` must be
+	// PATCHed right after the POST, or the apply is inconsistent.
+	var calls []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		calls = append(calls, r.Method+" "+r.URL.Path)
+		switch r.Method {
+		case http.MethodPost:
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"data":{"type":"flow","id":"F1","attributes":{"name":"n","status":"draft"}}}`))
+		case http.MethodPatch:
+			if !strings.Contains(string(b), `"status":"live"`) {
+				t.Errorf("PATCH body = %s, want status live", b)
+			}
+			_, _ = w.Write([]byte(`{"data":{"type":"flow","id":"F1","attributes":{"name":"n","status":"live"}}}`))
+		}
+	}))
+	defer srv.Close()
+
+	out, err := newTestResource(t, srv.URL).create(t.Context(), "n", `{"triggers":[]}`, "live")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.Attributes.Status != "live" {
+		t.Errorf("status = %q, want live", out.Attributes.Status)
+	}
+	if len(calls) != 2 || calls[1] != "PATCH /api/flows/F1" {
+		t.Errorf("calls = %v, want POST then PATCH /api/flows/F1", calls)
+	}
+}
+
+func TestCreateSkipsPatchForDraft(t *testing.T) {
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"data":{"type":"flow","id":"F1","attributes":{"status":"draft"}}}`))
+	}))
+	defer srv.Close()
+
+	if _, err := newTestResource(t, srv.URL).create(t.Context(), "n", `{}`, "draft"); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 1 {
+		t.Errorf("calls = %d, want 1 (no PATCH for draft)", calls)
+	}
+}
